@@ -81,6 +81,7 @@ export default function Dashboard() {
   const TB_DEVICE_UUID = import.meta.env.VITE_THINGSBOARD_DEVICE_UUID;
   const username = import.meta.env.TB_CLOUD_EMAIL;
   const password = import.meta.env.TB_CLOUD_PASS;
+  const SERVER_URL = import.meta.env.VITE_SERVER_URL;
 
   // weather
   const [locationId, setLocationId] = useState(LOCATIONS[0].id);
@@ -94,7 +95,7 @@ export default function Dashboard() {
   async function fetchWeather(lat, lon) {
     try {
       const res = await axios.get(
-        `http://localhost:3000/api/v1/weather?lat=${lat}&lon=${lon}&part=current`
+        `${SERVER_URL}/api/v1/weather?lat=${lat}&lon=${lon}&part=current`
       );
       return res.data;
     } catch (err) {

@@ -7,6 +7,7 @@ export default function AChat() {
   const [input, setInput] = useState("");
   const conversationId = "user123"; // could be dynamic
   const messagesEndRef = useRef(null);
+  const CHAT_BOT_API = import.meta.env.VITE_CHAT_BOT_API;
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -25,7 +26,7 @@ export default function AChat() {
 
     try {
       // Call backend
-      const res = await fetch("http://localhost:8000/chat/", {
+      const res = await fetch(`${CHAT_BOT_API}/chat/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

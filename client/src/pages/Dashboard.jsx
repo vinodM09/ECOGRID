@@ -101,7 +101,7 @@ export default function Dashboard() {
   // fetch geo-location
   const fetchGeoLocation = async (city, state, country) => {
     try {
-      const res = await axios.get(`http://api.openweathermap.org/geo/1.0/direct?q=${city},${state},${country}&limit=1&appid=${GEO_LOCATION_API_KEY}`);
+      const res = await axios.get(`https://api.openweathermap.org/geo/1.0/direct?q=${city},${state},${country}&limit=1&appid=${GEO_LOCATION_API_KEY}`);
       if (res.data && res.data.length > 0) {
         setCoordinates({
           lat: res.data[0].lat,

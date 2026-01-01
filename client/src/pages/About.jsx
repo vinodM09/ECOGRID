@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import Navbar from "../components/Navbar";
-import { LOCATIONS } from "../data/constants";
+import { Locations } from "../data/constants";
 
 export default function About({ openAIChat }) {
-  const [locationId, setLocationId] = useState(LOCATIONS[0].id);
+  const [locationId, setLocationId] = useState(Locations[0].id);
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
       <Navbar
-        locations={LOCATIONS}
+        locations={Locations}
         locationId={locationId}
         setLocationId={setLocationId}
         openAIChat={openAIChat}

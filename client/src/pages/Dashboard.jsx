@@ -11,21 +11,24 @@ import {
   Cell,
   Legend,
 } from "recharts";
+import { Skeleton } from "@mui/material";
 import Navbar from "../components/Navbar";
 import AIInput from "../components/AIInput";
 import TelemetryDashboard from "./TelemeteryDashboard";
-import { LOCATIONS, initialTimeseries } from "../data/constants";
+import { Locations, initialTimeseries } from "../data/constants";
 import axios from "axios";
 import { useTelemetry } from "../context/TelemetryContext";
 
 export default function Dashboard() {
   const GEO_LOCATION_API_KEY = import.meta.env.VITE_GEO_LOCATION_API_KEY;
+  const WEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
+  const TB_DEVICE_UUID = import.meta.env.VITE_THINGSBOARD_DEVICE_UUID;
   const [series, setSeries] = useState(initialTimeseries());
   const [isAIOpen, setAIOpen] = useState(false);
   const [aiMessages, setAiMessages] = useState([
     { from: "ai", text: "Hi — ask me about power, faults, battery, or optimization." },
   ]);
-
+  const [coordinates, setCoordinates] = useState({ lat: "", lon: "" });
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -79,75 +82,64 @@ export default function Dashboard() {
     }
   }, [latestTelemetry]);
 
-  const TB_DEVICE_UUID = import.meta.env.VITE_THINGSBOARD_DEVICE_UUID;
-  const username = import.meta.env.TB_CLOUD_EMAIL;
-  const password = import.meta.env.TB_CLOUD_PASS;
-  const SERVER_URL = import.meta.env.VITE_SERVER_URL;
-
   // weather
-  const [locationId, setLocationId] = useState(LOCATIONS[0].id);
+  const [locationId, setLocationId] = useState(Locations[0].id);
+  const location = Locations.find((l) => l.id === locationId);
   const [weather, setWeather] = useState({
     condition: "",
     temp: "",
     humidity: "",
     icon: "",
   });
+  const [weatherLoading, setWeatherLoading] = useState(true);
 
+  // when location changes, set loading to true
+  useEffect(() => {
+    setWeatherLoading(true);
+  }, [locationId]);
+
+  // fetch geo-location
   const fetchGeoLocation = async (city, state, country) => {
     try {
-      console.log(GEO_LOCATION_API_KEY, city, state, country)
       const res = await axios.get(`http://api.openweathermap.org/geo/1.0/direct?q=${city},${state},${country}&limit=1&appid=${GEO_LOCATION_API_KEY}`);
-      console.log(res);
       if (res.data && res.data.length > 0) {
         setCoordinates({
           lat: res.data[0].lat,
           lon: res.data[0].lon
-          }
-        )
+          })
       }
     } catch (err) {
-      console.error("Geolocation fetch error:", err);
+      console.error("There was an error fetching the geo-location.");
     }
   }
 
   useEffect(() => {
-    fetchGeoLocation(LOCATIONS[0].city, LOCATIONS[0].state, LOCATIONS[0].country)
-  }, []);
+    fetchGeoLocation(location.city, location.state, location.country)
+  }, [location]);
 
-  const fetchWeather = (lat, lon) => {
+  // fetch weather
+  const fetchWeather = async (lat, lon) => {
+    if (!lat || !lon) return;
+    setWeatherLoading(true);
     try {
-      const WEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
       const location = `${lat},${lon}`;
-      const apiUrl = `https://api.weatherapi.com/v1/current.json?key=${WEATHER_API_KEY}&q=${location}`;
-      console.log(apiUrl)
-      setWeather(
-        condition = apiUrl.data.condition
-      )
+      const res = await axios.get(`https://api.weatherapi.com/v1/current.json?key=${WEATHER_API_KEY}&q=${location}`);
+      setWeather({
+              condition: res.data.current.condition.text,
+              temp: res.data.current.temp_c,
+              humidity: res.data.current.humidity,
+              icon: res.data.current.condition.icon,
+            })
     } catch (err) {
-      console.error("Weather fetch error:", err);
+      console.error("There was an error fetching the weather.");
+    } finally {
+      setWeatherLoading(false);
     }
   }
 
   useEffect(() => {
-    const loc = LOCATIONS.find((l) => l.id === locationId);
-    if (!loc) return;
-
-    // First fetch geocoding data to get lat/lon, then fetch weather
-    fetchGeoLocation(loc.city, loc.state, loc.country).then((coords) => {
-      if (coords) {
-        fetchWeather(coords.lat, coords.lon).then((data) => {
-          if (data) {
-            setWeather({
-              condition: data.current.condition.text,
-              temp: data.current.temp_c,
-              humidity: data.current.humidity,
-              icon: data.current.condition.icon,
-            });
-          }
-        });
-      }
-    });
-  }, [locationId]);
+    fetchWeather(coordinates.lat, coordinates.lon)
+  }, [coordinates])
 
   // battery
   const [battery, setBattery] = useState({
@@ -224,7 +216,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar
-        locations={LOCATIONS}
+        locations={Locations}
         locationId={locationId}
         setLocationId={setLocationId}
         openAIChat={openAI}
@@ -233,22 +225,35 @@ export default function Dashboard() {
       <main className="w-full px-3 md:px-6 py-4 space-y-6">
         {/* Weather */}
         <div className="bg-white p-4 rounded-xl shadow flex items-center gap-6">
-          <div className="text-4xl">
-            <img
-              src={weather.icon ? `https:${weather.icon}` : "/images/weather-icon-png-16.png"}
-              alt="condition_icon"
-              className="max-w-12"
-            />
-          </div>
-          <div>
-            <div className="text-sm text-gray-500">
-              Weather — {LOCATIONS.find((l) => l.id === locationId).name}
-            </div>
-            <div className="text-lg font-semibold">
-              {weather.condition}, {weather.temp}°C
-            </div>
-            <div className="text-sm text-gray-600">Humidity: {weather.humidity}%</div>
-          </div>
+          {weatherLoading ? (
+            <>
+              <Skeleton variant="circular" width={48} height={48} />
+              <div className="flex-1">
+                <Skeleton variant="text" width="60%" height={20} />
+                <Skeleton variant="text" width="40%" height={24} />
+                <Skeleton variant="text" width="30%" height={16} />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="text-4xl">
+                <img
+                  src={weather.icon ? `https:${weather.icon}` : "/images/weather-icon-png-16.png"}
+                  alt="condition_icon"
+                  className="max-w-12"
+                />
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">
+                  Weather — {Locations.find((l) => l.id === locationId).name}, {location.state}
+                </div>
+                <div className="text-lg font-semibold">
+                  {weather.condition}, {weather.temp}°C
+                </div>
+                <div className="text-sm text-gray-600">Humidity: {weather.humidity}%</div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* ThingsBoard Telemetry */}
@@ -263,7 +268,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-3">
               <div>
                 <div className="text-sm text-gray-500">
-                  Live monitoring — {LOCATIONS.find((l) => l.id === locationId).name}
+                  Live monitoring — {Locations.find((l) => l.id === locationId).name}
                 </div>
                 <div className="text-xl font-bold">Realtime Power (PV vs Load)</div>
               </div>

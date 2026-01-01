@@ -1,39 +1,33 @@
-export const LOCATIONS = [
+export const Locations = [
   {
     id: "kalahandi",
-    name: "Kalahandi, Maligaon (Gram Vikas)",
-    city: "Maligaon",
+    name: "Maligaon (Gram Vikas), Kalahandi",
+    city: "Kalahandi",
     state: "Odisha",
     country: "IN"
   },
   {
     id: "keonjhar",
-    name: "Keonjhar, RE-EMPOWERED pilot microgrid",
+    name: "RE-EMPOWERED pilot microgrid, Keonjhar",
     city: "Keonjhar",
     state: "Odisha",
     country: "IN"
   },
   {
     id: "angul district",
-    name: "Kudagaon, Mahanadi river island",
-    city: "Kudagaon",
+    name: "Mahanadi river island, Kudagaon",
+    city: "Angul",
     state: "Odisha",
     country: "IN"
   },
   {
     id: "angul",
     name: "Chhotkei Village (Smart nanogrid)",
-    city: "Chhotkei",
+    city: "Angul",
     state: "Odisha",
     country: "IN"
   }
 ];
-
-export const WEATHER = {
-  katni: { temp: 31, condition: "Sunny", humidity: 40 },
-  indore: { temp: 28, condition: "Cloudy", humidity: 55 },
-  jabalpur: { temp: 26, condition: "Rainy", humidity: 70 },
-};
 
 export function initialTimeseries() {
   return Array.from({ length: 24 }).map((_, i) => ({

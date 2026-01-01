@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Navbar from "../components/Navbar";
-import { LOCATIONS } from "../data/constants";
+import { Locations } from "../data/constants";
 import {
   ResponsiveContainer,
   LineChart,
@@ -14,7 +14,7 @@ import { useTelemetry } from "../context/TelemetryContext";
 
 export default function Monitoring({ openAIChat }) {
   const [series, setSeries] = useState([]);
-  const [locationId, setLocationId] = useState(LOCATIONS[0].id);
+  const [locationId, setLocationId] = useState(Locations[0].id);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
   const telemetry = useTelemetry();
 
@@ -100,7 +100,7 @@ export default function Monitoring({ openAIChat }) {
     <div className="min-h-screen bg-gray-50">
       {/* Navbar */}
       <Navbar
-        locations={LOCATIONS}
+        locations={Locations}
         locationId={locationId}
         setLocationId={setLocationId}
         openAIChat={openAIChat}

@@ -1,15 +1,29 @@
 import React from "react";
+import { Skeleton } from "@mui/material";
 import { useTelemetry } from "../context/TelemetryContext";
 
 function TelemetryDashboard() {
   const telemetry = useTelemetry();
 
+  const isLoading = Object.keys(telemetry).length === 0;
+
   return (
     <div className="bg-white p-4 rounded-xl shadow">
       <div className="text-sm text-gray-500">Live Telemetry</div>
 
-      {Object.keys(telemetry).length === 0 ? (
-        <p className="text-gray-400 text-sm mt-3">No data yet</p>
+      {isLoading ? (
+        <div className="mt-3 grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(3)].map((_, index) => (
+            <div
+              key={index}
+              className="bg-gray-50 p-3 rounded-lg flex flex-col justify-between"
+            >
+              <Skeleton variant="text" width="60%" height={16} />
+              <Skeleton variant="text" width="40%" height={24} />
+              <Skeleton variant="text" width="50%" height={12} />
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="mt-3 grid grid-cols-3 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Object.entries(telemetry).map(([key, { ts, value }]) => {

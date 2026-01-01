@@ -2,10 +2,9 @@ import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { HiOutlineMenu, HiOutlineX, HiLocationMarker } from "react-icons/hi";
-import Chatbot from "./ChatBot";
 import AChat from "./aChat";
 
-export default function Navbar({ locations, locationId, setLocationId, openAIChat }) {
+export default function Navbar({ locations, locationId, setLocationId }) {
   const auth = useAuth();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
@@ -90,15 +89,8 @@ export default function Navbar({ locations, locationId, setLocationId, openAICha
             </select>
           </div>
 
-          {/* Ask AI button */}
-          {/* <button
-            onClick={() => openAIChat && openAIChat()}
-            className="hidden md:block text-sm bg-green-50 text-green-600 px-3 py-1 rounded"
-          >
-            Ask AI
-          </button> */}
+          {/* Ask AI */}
           <AChat />
-          {/* <Chatbot /> */}
 
           {/* Notification Bell */}
           <button

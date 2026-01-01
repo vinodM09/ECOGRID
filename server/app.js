@@ -5,7 +5,7 @@ const cors = require('cors')
 const bodyParser = require('body-parser')
 const cookieParser = require('cookie-parser')
 require('dotenv').config({ path: __dirname + '/.env' })
-const weatherRouter = require('./routes/weatherRouter')
+
 
 // middlewares
 app.use(
@@ -20,7 +20,7 @@ app.use(express.static(path.join(__dirname, 'public')))
 app.use('/uploads', express.static('uploads'))
 app.use(cookieParser())
 
-app.use('/api/v1', weatherRouter)
+
 
 app.get('/', (req, res) => {
   res.status(200).json({

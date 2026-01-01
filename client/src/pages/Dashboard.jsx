@@ -19,6 +19,7 @@ import axios from "axios";
 import { useTelemetry } from "../context/TelemetryContext";
 
 export default function Dashboard() {
+  const GEO_LOCATION_API_KEY = import.meta.env.VITE_GEO_LOCATION_API_KEY;
   const [series, setSeries] = useState(initialTimeseries());
   const [isAIOpen, setAIOpen] = useState(false);
   const [aiMessages, setAiMessages] = useState([
@@ -70,7 +71,7 @@ export default function Dashboard() {
 
       const MAX_POINTS_DESKTOP = 50;
       const MAX_POINTS_MOBILE = 10;
-      
+
       setSeries((prev) => {
         const updated = [...prev, newPoint];
         return updated.slice(-(isMobile ? MAX_POINTS_MOBILE : MAX_POINTS_DESKTOP));
@@ -92,12 +93,36 @@ export default function Dashboard() {
     icon: "",
   });
 
-  async function fetchWeather(lat, lon) {
+  const fetchGeoLocation = async (city, state, country) => {
     try {
-      const res = await axios.get(
-        `${SERVER_URL}/api/v1/weather?lat=${lat}&lon=${lon}&part=current`
-      );
-      return res.data;
+      console.log(GEO_LOCATION_API_KEY, city, state, country)
+      const res = await axios.get(`http://api.openweathermap.org/geo/1.0/direct?q=${city},${state},${country}&limit=1&appid=${GEO_LOCATION_API_KEY}`);
+      console.log(res);
+      if (res.data && res.data.length > 0) {
+        setCoordinates({
+          lat: res.data[0].lat,
+          lon: res.data[0].lon
+          }
+        )
+      }
+    } catch (err) {
+      console.error("Geolocation fetch error:", err);
+    }
+  }
+
+  useEffect(() => {
+    fetchGeoLocation(LOCATIONS[0].city, LOCATIONS[0].state, LOCATIONS[0].country)
+  }, []);
+
+  const fetchWeather = (lat, lon) => {
+    try {
+      const WEATHER_API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
+      const location = `${lat},${lon}`;
+      const apiUrl = `https://api.weatherapi.com/v1/current.json?key=${WEATHER_API_KEY}&q=${location}`;
+      console.log(apiUrl)
+      setWeather(
+        condition = apiUrl.data.condition
+      )
     } catch (err) {
       console.error("Weather fetch error:", err);
     }
@@ -107,13 +132,18 @@ export default function Dashboard() {
     const loc = LOCATIONS.find((l) => l.id === locationId);
     if (!loc) return;
 
-    fetchWeather(loc.lat, loc.lon).then((data) => {
-      if (data) {
-        setWeather({
-          condition: data.current.condition.text,
-          temp: data.current.temp_c,
-          humidity: data.current.humidity,
-          icon: data.current.condition.icon,
+    // First fetch geocoding data to get lat/lon, then fetch weather
+    fetchGeoLocation(loc.city, loc.state, loc.country).then((coords) => {
+      if (coords) {
+        fetchWeather(coords.lat, coords.lon).then((data) => {
+          if (data) {
+            setWeather({
+              condition: data.current.condition.text,
+              temp: data.current.temp_c,
+              humidity: data.current.humidity,
+              icon: data.current.condition.icon,
+            });
+          }
         });
       }
     });
@@ -167,8 +197,8 @@ export default function Dashboard() {
     battery.soc >= 60
       ? "text-green-600"
       : battery.soc >= 30
-      ? "text-yellow-500"
-      : "text-red-500";
+        ? "text-yellow-500"
+        : "text-red-500";
 
   const dayEnergy = series
     .filter((d) => parseInt(d.time) < 18 && parseInt(d.time) >= 6)
@@ -229,45 +259,45 @@ export default function Dashboard() {
 
         {/* Power Chart and Summary */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="col-span-2 bg-white p-4 rounded-xl shadow">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <div className="text-sm text-gray-500">
-            Live monitoring — {LOCATIONS.find((l) => l.id === locationId).name}
+          <div className="col-span-2 bg-white p-4 rounded-xl shadow">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <div className="text-sm text-gray-500">
+                  Live monitoring — {LOCATIONS.find((l) => l.id === locationId).name}
+                </div>
+                <div className="text-xl font-bold">Realtime Power (PV vs Load)</div>
+              </div>
+            </div>
+            <div className="h-64 md:h-80">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={series} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="pvGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#22C55E" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#22C55E" stopOpacity={0.05} />
+                    </linearGradient>
+                    <linearGradient id="loadGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="time"
+                    interval={isMobile ? Math.floor(series.length / 5) : Math.floor(series.length / 12)}
+                    tickFormatter={(value) => {
+                      // keep only HH:MM
+                      const parts = value.split(":");
+                      return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : value;
+                    }}
+                  />
+                  <YAxis label={{ value: "Energy (Wh)", angle: -90, position: "insideLeft" }} />
+                  <Tooltip />
+                  <Area type="monotone" dataKey="pv" stroke="#22C55E" fill="url(#pvGrad)" isAnimationActive={false} />
+                  <Area type="monotone" dataKey="load" stroke="#3B82F6" fill="url(#loadGrad)" isAnimationActive={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-          <div className="text-xl font-bold">Realtime Power (PV vs Load)</div>
-        </div>
-      </div>
-      <div className="h-64 md:h-80">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={series} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-            <defs>
-              <linearGradient id="pvGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#22C55E" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#22C55E" stopOpacity={0.05} />
-              </linearGradient>
-              <linearGradient id="loadGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.05} />
-              </linearGradient>
-            </defs>
-            <XAxis
-  dataKey="time"
-  interval={isMobile ? Math.floor(series.length / 5) : Math.floor(series.length / 12)}
-  tickFormatter={(value) => {
-    // keep only HH:MM
-    const parts = value.split(":");
-    return parts.length >= 2 ? `${parts[0]}:${parts[1]}` : value;
-  }}
-/>
-            <YAxis label={{ value: "Energy (Wh)", angle: -90, position: "insideLeft" }} />
-            <Tooltip />
-            <Area type="monotone" dataKey="pv" stroke="#22C55E" fill="url(#pvGrad)" isAnimationActive={false}/>
-            <Area type="monotone" dataKey="load" stroke="#3B82F6" fill="url(#loadGrad)" isAnimationActive={false}/>
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
 
           {/* Summary */}
           <div className="bg-white p-4 rounded-xl shadow">
@@ -275,13 +305,13 @@ export default function Dashboard() {
             <div className="mt-3 space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs text-gray-400">Generated today (W)</div>
+                  <div className="text-xs text-gray-400">Generated today (Wh)</div>
                   <div className="text-2xl font-bold text-green-600">
-  {formatNumber(generatedToday)}
-</div>
+                    {formatNumber(generatedToday)}
+                  </div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-400">Used today (W)</div>
+                  <div className="text-xs text-gray-400">Used today (Wh)</div>
                   <div className="text-2xl font-bold text-blue-600">{formatNumber(usedToday)}</div>
                 </div>
               </div>
@@ -323,7 +353,7 @@ export default function Dashboard() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="p-3 bg-green-50 rounded">
                 <div className="text-xs text-gray-500">Total Production</div>
-                <div className="text-lg font-bold text-green-600">{formatNumber(generatedToday)} kWh</div>
+                <div className="text-lg font-bold text-green-600">{formatNumber(generatedToday)} Wh</div>
               </div>
               <div className="p-3 bg-blue-50 rounded">
                 <div className="text-xs text-gray-500">CO₂ Reduction</div>
@@ -420,11 +450,10 @@ export default function Dashboard() {
               {aiMessages.map((m, i) => (
                 <div
                   key={i}
-                  className={`p-2 rounded ${
-                    m.from === "ai"
-                      ? "bg-white text-gray-800"
-                      : "bg-green-50 text-green-700 self-end"
-                  }`}
+                  className={`p-2 rounded ${m.from === "ai"
+                    ? "bg-white text-gray-800"
+                    : "bg-green-50 text-green-700 self-end"
+                    }`}
                 >
                   {m.text}
                 </div>
